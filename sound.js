@@ -1,4 +1,3 @@
-
 // ==============================
 // 音楽プレイヤー
 // ==============================
@@ -24,6 +23,7 @@ const repeatButton = document.getElementById("repeat");
 let songs = [];
 let currentIndex = -1;
 let isRepeatOne = false;
+let db;
 
 
 // ==============================
@@ -32,8 +32,6 @@ let isRepeatOne = false;
 
 const DB_NAME = "SoundPlayerDB";
 const STORE_NAME = "songs";
-
-let db;
 
 
 // データベースを開く
@@ -82,17 +80,15 @@ function getSavedSongs() {
 }
 
 
-// 曲を保存
-function saveSong(file) {
+// ==============================
+// 曲の保存
+// ArrayBuffer形式で保存する
+// ==============================
+
+async function saveSong(file) {
+    const buffer = await file.arrayBuffer();
+
     return new Promise((resolve, reject) => {
-
-        // FileをBlobに変換
-        const blob = file.slice(
-            0,
-            file.size,
-            file.type
-        );
-
         const transaction = db.transaction(
             STORE_NAME,
             "readwrite"
@@ -102,14 +98,16 @@ function saveSong(file) {
 
         const request = store.add({
             name: file.name,
-            file: blob
+            type: file.type,
+            file: buffer
         });
 
         request.onsuccess = function () {
             resolve({
                 id: request.result,
                 name: file.name,
-                file: blob
+                type: file.type,
+                file: buffer
             });
         };
 
@@ -135,31 +133,25 @@ function renderSongList() {
         const songElement = document.createElement("div");
         songElement.className = "song";
 
-        // 曲アイコン
         const icon = document.createElement("span");
         icon.className = "song-icon";
 
-        // 曲名
         const name = document.createElement("span");
         name.className = "song-name";
 
         name.textContent = song.name.replace(/\.[^/.]+$/, "");
 
-        // 再生中の曲かどうか
         if (index === currentIndex) {
             icon.textContent = audio.paused ? "■" : "▶";
         } else {
             icon.textContent = "■";
         }
 
-        // 曲をクリックしたら再生・一時停止
         songElement.addEventListener("click", function () {
             if (index === currentIndex) {
                 if (audio.paused) {
                     audio.play()
-                        .then(() => {
-                            updatePlayer();
-                        })
+                        .then(updatePlayer)
                         .catch(error => {
                             console.error("再生エラー:", error);
                         });
@@ -203,17 +195,19 @@ function playSong(index) {
 
     const song = songs[currentIndex];
 
-    // 古い再生用URLを解放
     if (audio.src.startsWith("blob:")) {
         URL.revokeObjectURL(audio.src);
     }
 
-    audio.src = URL.createObjectURL(song.file);
+    const audioBlob = new Blob(
+        [song.file],
+        { type: song.type || "audio/mpeg" }
+    );
+
+    audio.src = URL.createObjectURL(audioBlob);
 
     audio.play()
-        .then(() => {
-            updatePlayer();
-        })
+        .then(updatePlayer)
         .catch(error => {
             console.error("再生エラー:", error);
             updatePlayer();
@@ -238,9 +232,7 @@ function togglePlay() {
 
     if (audio.paused) {
         audio.play()
-            .then(() => {
-                updatePlayer();
-            })
+            .then(updatePlayer)
             .catch(error => {
                 console.error("再生エラー:", error);
             });
@@ -315,7 +307,7 @@ function updatePlayer() {
 
     playButton.textContent = audio.paused ? "▶" : "Ⅱ";
 
-    repeatButton.textContent = isRepeatOne ? "🔁" : "🔁";
+    repeatButton.textContent = "🔁";
     repeatButton.classList.toggle("active", isRepeatOne);
 
     repeatButton.title = isRepeatOne
@@ -330,18 +322,14 @@ function updatePlayer() {
 // 曲の追加
 // ==============================
 
-// 曲追加ボタン
 addMusicButton.addEventListener("click", function () {
     musicFiles.click();
 });
 
 
-// ファイルが選択されたとき
 musicFiles.addEventListener("change", async function () {
-
     const selectedFiles = Array.from(musicFiles.files);
 
-    // 動作確認用アラート
     alert(
         "ファイル選択イベントが動きました。\n" +
         "選択されたファイル数：" + selectedFiles.length +
@@ -357,15 +345,11 @@ musicFiles.addEventListener("change", async function () {
     let addedCount = 0;
 
     for (const file of selectedFiles) {
-
-        // 音声ファイルか確認
         const isAudio =
             file.type.startsWith("audio/") ||
             /\.(mp3|flac|m4a|wav|aac|ogg)$/i.test(file.name);
 
-        if (!isAudio) {
-            continue;
-        }
+        if (!isAudio) continue;
 
         try {
             const savedSong = await saveSong(file);
@@ -434,7 +418,7 @@ if ("serviceWorker" in navigator) {
         .then(() => {
             console.log("Service Worker 登録成功");
         })
-        .catch((error) => {
+        .catch(error => {
             console.error("Service Worker 登録失敗:", error);
         });
 }
