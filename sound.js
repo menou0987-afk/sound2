@@ -351,8 +351,13 @@ musicFiles.addEventListener("change", async function () {
     for (const file of selectedFiles) {
 
         // 音声ファイル以外は無視
-        if (!file.type.startsWith("audio/")) continue;
+        
+        // 音声ファイルか確認
+        const isAudio =
+            file.type.startsWith("audio/") ||
+            /\.(mp3|flac|m4a|wav|aac|ogg)$/i.test(file.name);
 
+        if (!isAudio) continue;
         try {
             const savedSong = await saveSong(file);
             songs.push(savedSong);
