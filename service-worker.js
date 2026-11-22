@@ -1,4 +1,4 @@
-const CACHE_NAME = "sound-cache-v1";
+const CACHE_NAME = "sound-cache-v2";
 
 const FILES_TO_CACHE = [
     "./index.html",
@@ -29,6 +29,17 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
     if (event.request.method !== "GET") return;
+
+    if (event.request.mode === "navigate") {
+        event.respondWith(
+            caches.match(
+                new URL("./index.html", self.registration.scope).href
+            ).then((cachedResponse) => {
+                return cachedResponse || fetch(event.request);
+            })
+        );
+        return;
+    }
 
     event.respondWith(
         caches.match(event.request).then((cachedResponse) => {
