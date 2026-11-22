@@ -85,24 +85,40 @@ function getSavedSongs() {
 // 曲を保存
 function saveSong(file) {
     return new Promise((resolve, reject) => {
-        const transaction = db.transaction(STORE_NAME, "readwrite");
+
+        // FileをBlobに変換
+        const blob = file.slice(
+            0,
+            file.size,
+            file.type
+        );
+
+        const transaction = db.transaction(
+            STORE_NAME,
+            "readwrite"
+        );
+
         const store = transaction.objectStore(STORE_NAME);
 
         const request = store.add({
             name: file.name,
-            file: file
+            file: blob
         });
 
         request.onsuccess = function () {
             resolve({
                 id: request.result,
                 name: file.name,
-                file: file
+                file: blob
             });
         };
 
         request.onerror = function () {
             reject(request.error);
+        };
+
+        transaction.onerror = function () {
+            reject(transaction.error);
         };
     });
 }
