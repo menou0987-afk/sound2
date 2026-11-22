@@ -1,0 +1,120 @@
+/* 全体設定 */
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #000;
+    color: #fff;
+    font-family: sans-serif;
+}
+
+/* 曲一覧 */
+#music-list {
+    padding: 20px;
+    padding-bottom: 150px;
+}
+
+/* 曲ごとの表示 */
+.song {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px 0;
+    cursor: pointer;
+}
+
+/* 曲アイコン */
+.song-icon {
+    width: 20px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+/* 曲名 */
+.song-name {
+    font-size: 16px;
+}
+
+/* 下部プレイヤー */
+#player {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background-color: #000;
+    border-top: 1px solid #333;
+    padding: 15px 20px;
+}
+
+/* 再生中の曲名 */
+#current-song {
+    font-size: 14px;
+    margin-bottom: 15px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+/* 操作ボタン配置 */
+#controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 35px;
+}
+
+/* ボタン共通設定 */
+button {
+    background: none;
+    border: none;
+    outline: none;
+    box-shadow: none;
+    color: white;
+    cursor: pointer;
+    font-size: 20px;
+    padding: 10px;
+}
+
+/* ボタンを押したとき */
+button:active {
+    opacity: 0.5;
+}
+
+/* スマホ画面対応 */
+@media (max-width: 600px) {
+    #music-list {
+        padding: 15px;
+        padding-bottom: 150px;
+    }
+
+    .song {
+        padding: 18px 0;
+    }
+
+    #controls {
+        gap: 30px;
+    }
+
+    button {
+        font-size: 22px;
+    }
+}
+#repeat {
+    position: relative;
+}
+
+/* OFFのときだけ斜線を表示 */
+#repeat:not(.active)::after {
+    content: "";
+    position: absolute;
+    width: 24px;
+    height: 2px;
+    background-color: white;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%) rotate(-45deg);
+    pointer-events: none;
+}

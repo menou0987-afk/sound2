@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sound</title>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="sound.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#000000">
+</head>
+<body>
+
+    <!-- 曲一覧エリア -->
+    <main id="music-list">
+
+        <!-- 曲追加ボタン -->
+        <div id="add-music-area">
+            <button id="add-music">＋ 曲を追加</button>
+
+            <!-- 音楽ファイル選択 -->
+            <input
+                type="file"
+                id="music-files"
+                accept="audio/*"
+                multiple
+                hidden
+            >
+        </div>
+
+        <!-- 読み込んだ曲がここに自動表示される -->
+        <div id="song-list"></div>
+
+    </main>
+
+    <!-- 下部固定プレイヤー -->
+    <footer id="player">
+
+        <!-- 再生中の曲名 -->
+        <div id="current-song">
+            未選択
+        </div>
+
+        <!-- 再生操作 -->
+        <div id="controls">
+
+            <!-- 1曲リピート -->
+            <button id="repeat" title="1曲リピート">🔁</button>
+
+            <!-- 前の曲 -->
+            <button id="prev" title="前の曲">⏮</button>
+
+            <!-- 再生・一時停止 -->
+            <button id="play" title="再生・一時停止">▶</button>
+
+            <!-- 次の曲 -->
+            <button id="next" title="次の曲">⏭</button>
+
+        </div>
+
+    </footer>
+
+    <!-- 音楽再生用 -->
+    <audio id="audio"></audio>
+
+    <!-- JavaScript -->
+    <script src="sound.js"></script>
+</body>
+</html>
