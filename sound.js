@@ -1,13 +1,12 @@
-// ==============================
-// 音楽プレイヤー
-// ==============================
 
-// HTML要素の取得
+ // ==============================
+ // 音楽プレイヤー 診断版
+ // ==============================
+
 const audio = document.getElementById("audio");
 const musicFiles = document.getElementById("music-files");
 const addMusicButton = document.getElementById("add-music");
 const songList = document.getElementById("song-list");
-
 const currentSongDisplay = document.getElementById("current-song");
 
 const playButton = document.getElementById("play");
@@ -28,16 +27,45 @@ let db;
 
 // ==============================
 // IndexedDB
+// 診断用の新しいデータベース名
 // ==============================
 
-const DB_NAME = "SoundPlayerDB";
+const DB_NAME = "SoundPlayerDB-Diagnostic";
 const STORE_NAME = "songs";
 
 
+// ==============================
+// エラー詳細表示
+// ==============================
+
+function showError(title, error) {
+    const name = error?.name || "不明";
+    const message = error?.message || String(error || "詳細不明");
+
+    console.error(title, error);
+
+    alert(
+        title + "\n\n" +
+        "エラー名：" + name + "\n" +
+        "詳細：" + message
+    );
+}
+
+
+// ==============================
 // データベースを開く
+// ==============================
+
 function openDatabase() {
     return new Promise((resolve, reject) => {
-        const request = indexedDB.open(DB_NAME, 1);
+        let request;
+
+        try {
+            request = indexedDB.open(DB_NAME, 1);
+        } catch (error) {
+            reject(error);
+            return;
+        }
 
         request.onupgradeneeded = function (event) {
             const database = event.target.result;
@@ -52,78 +80,129 @@ function openDatabase() {
 
         request.onsuccess = function (event) {
             db = event.target.result;
+
+            db.onversionchange = function () {
+                db.close();
+            };
+
             resolve(db);
         };
 
         request.onerror = function () {
             reject(request.error);
         };
-    });
-}
 
-
-// 保存された曲を取得
-function getSavedSongs() {
-    return new Promise((resolve, reject) => {
-        const transaction = db.transaction(STORE_NAME, "readonly");
-        const store = transaction.objectStore(STORE_NAME);
-        const request = store.getAll();
-
-        request.onsuccess = function () {
-            resolve(request.result);
-        };
-
-        request.onerror = function () {
-            reject(request.error);
+        request.onblocked = function () {
+            reject(new Error("データベースの処理がブロックされています"));
         };
     });
 }
 
 
 // ==============================
-// 曲の保存
-// ArrayBuffer形式で保存する
+// 保存済みの曲を取得
+// ==============================
+
+function getSavedSongs() {
+    return new Promise((resolve, reject) => {
+        try {
+            const transaction = db.transaction(
+                STORE_NAME,
+                "readonly"
+            );
+
+            const store = transaction.objectStore(STORE_NAME);
+            const request = store.getAll();
+
+            request.onsuccess = function () {
+                resolve(request.result);
+            };
+
+            request.onerror = function () {
+                reject(request.error);
+            };
+
+            transaction.onerror = function () {
+                reject(transaction.error);
+            };
+
+        } catch (error) {
+            reject(error);
+        }
+    });
+}
+
+
+// ==============================
+// 曲を保存
+// ArrayBuffer形式
 // ==============================
 
 async function saveSong(file) {
+    // ファイルをバイトデータに変換
     const buffer = await file.arrayBuffer();
 
     return new Promise((resolve, reject) => {
-        const transaction = db.transaction(
-            STORE_NAME,
-            "readwrite"
-        );
+        let transaction;
+        let request;
+        let savedId;
 
-        const store = transaction.objectStore(STORE_NAME);
+        try {
+            transaction = db.transaction(
+                STORE_NAME,
+                "readwrite"
+            );
 
-        const request = store.add({
-            name: file.name,
-            type: file.type,
-            file: buffer
-        });
+            const store = transaction.objectStore(STORE_NAME);
 
-        request.onsuccess = function () {
-            resolve({
-                id: request.result,
+            request = store.add({
                 name: file.name,
                 type: file.type,
                 file: buffer
             });
-        };
 
-        request.onerror = function () {
-            reject(request.error);
-        };
+            request.onsuccess = function () {
+                savedId = request.result;
+            };
 
-        transaction.onerror = function () {
-            reject(transaction.error);
-        };
+            request.onerror = function () {
+                reject(request.error);
+            };
+
+            transaction.oncomplete = function () {
+                resolve({
+                    id: savedId,
+                    name: file.name,
+                    type: file.type,
+                    file: buffer
+                });
+            };
+
+            transaction.onerror = function () {
+                reject(
+                    transaction.error ||
+                    request.error ||
+                    new Error("保存トランザクション失敗")
+                );
+            };
+
+            transaction.onabort = function () {
+                reject(
+                    transaction.error ||
+                    request.error ||
+                    new Error("保存トランザクション中断")
+                );
+            };
+
+        } catch (error) {
+            reject(error);
+        }
     });
 }
 
 
 // ==============================
-// 曲一覧の表示
+// 曲一覧表示
 // ==============================
 
 function renderSongList() {
@@ -153,7 +232,7 @@ function renderSongList() {
                     audio.play()
                         .then(updatePlayer)
                         .catch(error => {
-                            console.error("再生エラー:", error);
+                            showError("再生エラー", error);
                         });
                 } else {
                     audio.pause();
@@ -201,7 +280,9 @@ function playSong(index) {
 
     const audioBlob = new Blob(
         [song.file],
-        { type: song.type || "audio/mpeg" }
+        {
+            type: song.type || "audio/mpeg"
+        }
     );
 
     audio.src = URL.createObjectURL(audioBlob);
@@ -209,9 +290,8 @@ function playSong(index) {
     audio.play()
         .then(updatePlayer)
         .catch(error => {
-            console.error("再生エラー:", error);
+            showError("再生エラー", error);
             updatePlayer();
-            alert("再生できませんでした。ファイル形式に対応していない可能性があります。");
         });
 
     updatePlayer();
@@ -234,7 +314,7 @@ function togglePlay() {
         audio.play()
             .then(updatePlayer)
             .catch(error => {
-                console.error("再生エラー:", error);
+                showError("再生エラー", error);
             });
     } else {
         audio.pause();
@@ -258,7 +338,11 @@ function prevSong() {
 
     if (audio.currentTime > 3) {
         audio.currentTime = 0;
-        audio.play();
+
+        audio.play().catch(error => {
+            showError("再生エラー", error);
+        });
+
         return;
     }
 
@@ -267,7 +351,7 @@ function prevSong() {
 
 
 // ==============================
-// 自動再生
+// 曲終了時の自動再生
 // ==============================
 
 audio.addEventListener("ended", function () {
@@ -275,7 +359,11 @@ audio.addEventListener("ended", function () {
 
     if (isRepeatOne) {
         audio.currentTime = 0;
-        audio.play();
+
+        audio.play().catch(error => {
+            showError("リピート再生エラー", error);
+        });
+
         return;
     }
 
@@ -294,7 +382,7 @@ repeatButton.addEventListener("click", function () {
 
 
 // ==============================
-// プレイヤー画面更新
+// 画面更新
 // ==============================
 
 function updatePlayer() {
@@ -330,19 +418,13 @@ addMusicButton.addEventListener("click", function () {
 musicFiles.addEventListener("change", async function () {
     const selectedFiles = Array.from(musicFiles.files);
 
-    alert(
-        "ファイル選択イベントが動きました。\n" +
-        "選択されたファイル数：" + selectedFiles.length +
-        "\nファイル名：" + (selectedFiles[0]?.name || "なし") +
-        "\n形式：" + (selectedFiles[0]?.type || "不明")
-    );
-
     if (selectedFiles.length === 0) {
         musicFiles.value = "";
         return;
     }
 
     let addedCount = 0;
+    let errorDetails = [];
 
     for (const file of selectedFiles) {
         const isAudio =
@@ -358,11 +440,12 @@ musicFiles.addEventListener("change", async function () {
             addedCount++;
 
         } catch (error) {
-            console.error("曲の保存に失敗:", error);
+            console.error("保存失敗:", file.name, error);
 
-            alert(
-                "曲の保存に失敗しました。\n" +
-                error.message
+            errorDetails.push(
+                "ファイル名：" + file.name +
+                "\nエラー名：" + (error?.name || "不明") +
+                "\n詳細：" + (error?.message || String(error))
             );
         }
     }
@@ -370,6 +453,13 @@ musicFiles.addEventListener("change", async function () {
     renderSongList();
 
     musicFiles.value = "";
+
+    if (errorDetails.length > 0) {
+        alert(
+            "曲の保存に失敗しました。\n\n" +
+            errorDetails.join("\n\n----------------\n\n")
+        );
+    }
 
     alert("追加できた曲数：" + addedCount);
 });
@@ -398,11 +488,8 @@ async function initialize() {
         updatePlayer();
 
     } catch (error) {
-        console.error("初期化エラー:", error);
-
+        showError("初期化エラー", error);
         currentSongDisplay.textContent = "データ読み込みエラー";
-
-        alert("初期化エラー：" + error.message);
     }
 }
 
