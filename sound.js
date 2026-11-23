@@ -1,378 +1,379 @@
-// ==============================
-// 音楽プレイヤー
-// ==============================
-
-// HTML要素の取得
-const audio = document.getElementById("audio");
-const musicFiles = document.getElementById("music-files");
-const addMusicButton = document.getElementById("add-music");
-const songList = document.getElementById("song-list");
-const currentSongDisplay = document.getElementById("current-song");
-
-const playButton = document.getElementById("play");
-const prevButton = document.getElementById("prev");
-const nextButton = document.getElementById("next");
-const repeatButton = document.getElementById("repeat");
-
-// IndexedDB設定
-const DB_NAME = "SoundPlayerDB-Diagnostic";
-const STORE_NAME = "songs";
-
-let db;
-let songs = [];
-let currentIndex = -1;
-let repeatOne = false;
-
-
-// ==============================
-// データベース
-// ==============================
-
-function openDatabase() {
-    return new Promise((resolve, reject) => {
-        const request = indexedDB.open(DB_NAME, 1);
-
-        request.onupgradeneeded = (event) => {
-            const database = event.target.result;
-
-            if (!database.objectStoreNames.contains(STORE_NAME)) {
-                database.createObjectStore(STORE_NAME, {
-                    keyPath: "id",
-                    autoIncrement: true
-                });
-            }
-        };
-
-        request.onsuccess = () => {
-            resolve(request.result);
-        };
-
-        request.onerror = () => {
-            reject(request.error);
-        };
-    });
-}
-
-
-// ==============================
-// 曲の保存
-// ==============================
-
-function saveSong(file) {
-    return new Promise(async (resolve, reject) => {
-        try {
-            const buffer = await file.arrayBuffer();
-
-            const transaction = db.transaction(
-                STORE_NAME,
-                "readwrite"
-            );
-
-            const store = transaction.objectStore(STORE_NAME);
-
-            store.add({
-                name: file.name,
-                type: file.type,
-                file: buffer
-            });
-
-            transaction.oncomplete = () => {
-                resolve();
-            };
-
-            transaction.onerror = () => {
-                reject(transaction.error);
-            };
-
-            transaction.onabort = () => {
-                reject(transaction.error);
-            };
-        } catch (error) {
-            reject(error);
-        }
-    });
-}
 
+ // ==============================
+ // 音楽プレイヤー
+ // ==============================
+
+ // HTML要素の取得
+ const audio = document.getElementById("audio");
+ const musicFiles = document.getElementById("music-files");
+ const addMusicButton = document.getElementById("add-music");
+ const songList = document.getElementById("song-list");
+ const currentSongDisplay = document.getElementById("current-song");
+
+ const playButton = document.getElementById("play");
+ const prevButton = document.getElementById("prev");
+ const nextButton = document.getElementById("next");
+ const repeatButton = document.getElementById("repeat");
+
+ // IndexedDB設定
+ const DB_NAME = "SoundPlayerDB-Diagnostic";
+ const STORE_NAME = "songs";
+
+ let db;
+ let songs = [];
+ let currentIndex = -1;
+ let repeatOne = false;
+
+
+ // ==============================
+ // データベース
+ // ==============================
+
+ function openDatabase() {
+     return new Promise((resolve, reject) => {
+         const request = indexedDB.open(DB_NAME, 1);
+
+         request.onupgradeneeded = (event) => {
+             const database = event.target.result;
+
+             if (!database.objectStoreNames.contains(STORE_NAME)) {
+                 database.createObjectStore(STORE_NAME, {
+                     keyPath: "id",
+                     autoIncrement: true
+                 });
+             }
+         };
+
+         request.onsuccess = () => {
+             resolve(request.result);
+         };
+
+         request.onerror = () => {
+             reject(request.error);
+         };
+     });
+ }
+
+
+ // ==============================
+ // 曲の保存
+ // ==============================
+
+ function saveSong(file) {
+     return new Promise(async (resolve, reject) => {
+         try {
+             const buffer = await file.arrayBuffer();
+
+             const transaction = db.transaction(
+                 STORE_NAME,
+                 "readwrite"
+             );
+
+             const store = transaction.objectStore(STORE_NAME);
+
+             store.add({
+                 name: file.name,
+                 type: file.type,
+                 file: buffer
+             });
+
+             transaction.oncomplete = () => {
+                 resolve();
+             };
+
+             transaction.onerror = () => {
+                 reject(transaction.error);
+             };
+
+             transaction.onabort = () => {
+                 reject(transaction.error);
+             };
+         } catch (error) {
+             reject(error);
+         }
+     });
+ }
 
-// ==============================
-// 曲の読み込み
-// ==============================
-
-function loadSongs() {
-    return new Promise((resolve, reject) => {
-        const transaction = db.transaction(
-            STORE_NAME,
-            "readonly"
-        );
 
-        const store = transaction.objectStore(STORE_NAME);
-        const request = store.getAll();
+ // ==============================
+ // 曲の読み込み
+ // ==============================
 
-        request.onsuccess = () => {
-            resolve(request.result);
-        };
+ function loadSongs() {
+     return new Promise((resolve, reject) => {
+         const transaction = db.transaction(
+             STORE_NAME,
+             "readonly"
+         );
 
-        request.onerror = () => {
-            reject(request.error);
-        };
-    });
-}
+         const store = transaction.objectStore(STORE_NAME);
+         const request = store.getAll();
 
+         request.onsuccess = () => {
+             resolve(request.result);
+         };
 
-// ==============================
-// 曲名表示
-// ==============================
+         request.onerror = () => {
+             reject(request.error);
+         };
+     });
+ }
 
-function getDisplayName(name) {
-    return name.replace(/\.[^/.]+$/, "");
-}
 
+ // ==============================
+ // 曲名表示
+ // ==============================
 
-// ==============================
-// 曲一覧の表示
-// ==============================
+ function getDisplayName(name) {
+     return name.replace(/\.[^/.]+$/, "");
+ }
 
-function renderSongList() {
-    songList.innerHTML = "";
 
-    songs.forEach((song, index) => {
-        const row = document.createElement("div");
-        row.className = "song";
+ // ==============================
+ // 曲一覧の表示
+ // ==============================
 
-        const mark = document.createElement("span");
-        mark.className = "song-icon";
+ function renderSongList() {
+     songList.innerHTML = "";
 
-        // 再生中は▶、それ以外は■
-        mark.textContent =
-            index === currentIndex && !audio.paused
-                ? "▶"
-                : "■";
+     songs.forEach((song, index) => {
+         const row = document.createElement("div");
+         row.className = "song";
 
-        // アイコンを押したらその曲を最初から再生
-        mark.addEventListener("click", (event) => {
-            event.stopPropagation();
-            playSong(index);
-        });
+         const mark = document.createElement("span");
+         mark.className = "song-icon";
 
-        row.appendChild(mark);
+         // 再生中は▶、それ以外は■
+         mark.textContent =
+             index === currentIndex && !audio.paused
+                 ? "▶"
+                 : "■";
 
-        // 曲名
-        const name = document.createElement("span");
-        name.className = "song-name";
-        name.textContent = getDisplayName(song.name);
+         // アイコンを押したらその曲を最初から再生
+         mark.addEventListener("click", (event) => {
+             event.stopPropagation();
+             playSong(index);
+         });
 
-        row.appendChild(name);
+         row.appendChild(mark);
 
-        // 曲名を押したとき
-        row.addEventListener("click", () => {
-            playSong(index);
-        });
+         // 曲名
+         const name = document.createElement("span");
+         name.className = "song-name";
+         name.textContent = getDisplayName(song.name);
 
-        songList.appendChild(row);
-    });
-}
+         row.appendChild(name);
 
+         // 曲名を押したとき
+         row.addEventListener("click", () => {
+             playSong(index);
+         });
 
-// ==============================
-// 曲の再生
-// ==============================
+         songList.appendChild(row);
+     });
+ }
 
-function playSong(index) {
-    if (songs.length === 0) return;
 
-    if (index < 0) {
-        index = songs.length - 1;
-    }
+ // ==============================
+ // 曲の再生
+ // ==============================
 
-    if (index >= songs.length) {
-        index = 0;
-    }
+ function playSong(index) {
+     if (songs.length === 0) return;
 
-    currentIndex = index;
+     if (index < 0) {
+         index = songs.length - 1;
+     }
 
-    const song = songs[currentIndex];
+     if (index >= songs.length) {
+         index = 0;
+     }
 
-    const blob = new Blob(
-        [song.file],
-        {
-            type: song.type || "audio/mpeg"
-        }
-    );
+     currentIndex = index;
 
-    // 前の音源URLを解放
-    if (audio.src) {
-        URL.revokeObjectURL(audio.src);
-    }
+     const song = songs[currentIndex];
 
-    // 音源をセット
-    audio.src = URL.createObjectURL(blob);
+     const blob = new Blob(
+         [song.file],
+         {
+             type: song.type || "audio/mpeg"
+         }
+     );
 
-    // 最初から再生
-    audio.currentTime = 0;
-    audio.play();
+     // 前の音源URLを解放
+     if (audio.src) {
+         URL.revokeObjectURL(audio.src);
+     }
 
-    // 再生中の曲名
-    currentSongDisplay.textContent = getDisplayName(song.name);
+     // 音源をセット
+     audio.src = URL.createObjectURL(blob);
 
-    playButton.textContent = "⏸";
+     // 最初から再生
+     audio.currentTime = 0;
+     audio.play();
 
-    renderSongList();
-}
+     // 再生中の曲名
+     currentSongDisplay.textContent = getDisplayName(song.name);
 
+     playButton.textContent = "⏸︎";
 
-// ==============================
-// 再生・一時停止
-// ==============================
+     renderSongList();
+ }
 
-function togglePlay() {
-    if (songs.length === 0) return;
 
-    if (currentIndex === -1) {
-        playSong(0);
-        return;
-    }
+ // ==============================
+ // 再生・一時停止
+ // ==============================
 
-    if (audio.paused) {
-        audio.play();
-        playButton.textContent = "⏸";
-    } else {
-        audio.pause();
-        playButton.textContent = "▶";
-    }
+ function togglePlay() {
+     if (songs.length === 0) return;
 
-    renderSongList();
-}
+     if (currentIndex === -1) {
+         playSong(0);
+         return;
+     }
 
+     if (audio.paused) {
+         audio.play();
+         playButton.textContent = "⏸︎";
+     } else {
+         audio.pause();
+         playButton.textContent = "▶";
+     }
 
-// ==============================
-// 次の曲
-// ==============================
+     renderSongList();
+ }
 
-function nextSong() {
-    if (songs.length === 0) return;
 
-    playSong(currentIndex + 1);
-}
+ // ==============================
+ // 次の曲
+ // ==============================
 
+ function nextSong() {
+     if (songs.length === 0) return;
 
-// ==============================
-// 前の曲
-// ==============================
+     playSong(currentIndex + 1);
+ }
 
-function prevSong() {
-    if (songs.length === 0) return;
 
-    playSong(currentIndex - 1);
-}
+ // ==============================
+ // 前の曲
+ // ==============================
 
+ function prevSong() {
+     if (songs.length === 0) return;
 
-// ==============================
-// 曲の追加
-// ==============================
+     playSong(currentIndex - 1);
+ }
 
-async function handleFiles(files) {
-    for (const file of files) {
-        await saveSong(file);
-    }
 
-    songs = await loadSongs();
+ // ==============================
+ // 曲の追加
+ // ==============================
 
-    renderSongList();
-}
+ async function handleFiles(files) {
+     for (const file of files) {
+         await saveSong(file);
+     }
 
+     songs = await loadSongs();
 
-// ==============================
-// 曲追加ボタン
-// ==============================
+     renderSongList();
+ }
 
-addMusicButton.addEventListener("click", () => {
-    musicFiles.click();
-});
 
+ // ==============================
+ // 曲追加ボタン
+ // ==============================
 
-// ==============================
-// ファイル選択
-// ==============================
+ addMusicButton.addEventListener("click", () => {
+     musicFiles.click();
+ });
 
-musicFiles.addEventListener("change", async () => {
-    const files = Array.from(musicFiles.files);
 
-    if (files.length > 0) {
-        await handleFiles(files);
-    }
+ // ==============================
+ // ファイル選択
+ // ==============================
 
-    musicFiles.value = "";
-});
+ musicFiles.addEventListener("change", async () => {
+     const files = Array.from(musicFiles.files);
 
+     if (files.length > 0) {
+         await handleFiles(files);
+     }
 
-// ==============================
-// 操作ボタン
-// ==============================
+     musicFiles.value = "";
+ });
 
-playButton.addEventListener("click", togglePlay);
 
-nextButton.addEventListener("click", nextSong);
+ // ==============================
+ // 操作ボタン
+ // ==============================
 
-prevButton.addEventListener("click", prevSong);
+ playButton.addEventListener("click", togglePlay);
 
+ nextButton.addEventListener("click", nextSong);
 
-// ==============================
-// 1曲リピート
-// ==============================
+ prevButton.addEventListener("click", prevSong);
 
-repeatButton.addEventListener("click", () => {
-    repeatOne = !repeatOne;
 
-    repeatButton.classList.toggle(
-        "active",
-        repeatOne
-    );
+ // ==============================
+ // 1曲リピート
+ // ==============================
 
-    repeatButton.textContent = repeatOne
-        ? "🔂"
-        : "🔁";
-});
+ repeatButton.addEventListener("click", () => {
+     repeatOne = !repeatOne;
 
+     repeatButton.classList.toggle(
+         "active",
+         repeatOne
+     );
 
-// ==============================
-// 曲が終了したとき
-// ==============================
+     repeatButton.textContent = repeatOne
+         ? "🔂"
+         : "🔁";
+ });
 
-audio.addEventListener("ended", () => {
-    if (repeatOne) {
-        audio.currentTime = 0;
-        audio.play();
-    } else {
-        nextSong();
-    }
-});
 
+ // ==============================
+ // 曲が終了したとき
+ // ==============================
 
-// ==============================
-// 再生状態の更新
-// ==============================
+ audio.addEventListener("ended", () => {
+     if (repeatOne) {
+         audio.currentTime = 0;
+         audio.play();
+     } else {
+         nextSong();
+     }
+ });
 
-audio.addEventListener("play", () => {
-    playButton.textContent = "⏸";
-    renderSongList();
-});
 
-audio.addEventListener("pause", () => {
-    playButton.textContent = "▶";
-    renderSongList();
-});
+ // ==============================
+ // 再生状態の更新
+ // ==============================
 
+ audio.addEventListener("play", () => {
+     playButton.textContent = "⏸︎";
+     renderSongList();
+ });
 
-// ==============================
-// 初期化
-// ==============================
+ audio.addEventListener("pause", () => {
+     playButton.textContent = "▶";
+     renderSongList();
+ });
 
-async function initialize() {
-    db = await openDatabase();
 
-    songs = await loadSongs();
+ // ==============================
+ // 初期化
+ // ==============================
 
-    renderSongList();
-}
+ async function initialize() {
+     db = await openDatabase();
 
-initialize();
+     songs = await loadSongs();
+
+     renderSongList();
+ }
+
+ initialize();
