@@ -35,6 +35,11 @@ body {
     color: #fff;
     font-size: 18px;
     font-weight: 900;
+    background: transparent;
+    background-color: transparent;
+    box-shadow: none;
+    -webkit-appearance: none;
+    appearance: none;
 }
 
 /* 曲名 */
@@ -127,29 +132,20 @@ button:active {
     transform: translate(-50%, -50%) rotate(-45deg);
     pointer-events: none;
 }
-/* 下部プレイヤーの一時停止アイコン */
+
+/* 下部プレイヤーの再生・一時停止ボタン */
 #play {
-    font-weight: 900;
-    letter-spacing: -2px;
-}
-#play {
+    display: flex;
+    justify-content: center;
+    align-items: center;
     background: transparent !important;
     background-color: transparent !important;
     box-shadow: none !important;
 }
-/* 曲一覧の再生マークの背景を消す */
-.song-icon {
-    background: transparent !important;
-    background-color: transparent !important;
-    box-shadow: none !important;
-    -webkit-appearance: none;
-    appearance: none;
-}
-/* 曲一覧の再生アイコン背景を透明にする */
-.song-icon {
-    background: transparent !important;
-    background-color: transparent !important;
-    box-shadow: none !important;
-    appearance: none;
-    -webkit-appearance: none;
+
+/* 下部プレイヤーのSVGアイコン */
+#play svg {
+    display: block;
+    width: 26px;
+    height: 26px;
 }
