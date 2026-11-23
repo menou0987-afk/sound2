@@ -1,5 +1,4 @@
-
-const CACHE_NAME = "sound-cache-v4";
+const CACHE_NAME = "sound-cache-v5";
 
 const FILES_TO_CACHE = [
     "./",
@@ -9,6 +8,10 @@ const FILES_TO_CACHE = [
     "./manifest.json"
 ];
 
+// ==============================
+// インストール
+// ==============================
+
 self.addEventListener("install", (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME)
@@ -16,6 +19,10 @@ self.addEventListener("install", (event) => {
             .then(() => self.skipWaiting())
     );
 });
+
+// ==============================
+// 更新・古いキャッシュ削除
+// ==============================
 
 self.addEventListener("activate", (event) => {
     event.waitUntil(
@@ -29,21 +36,47 @@ self.addEventListener("activate", (event) => {
     );
 });
 
-self.addEventListener("fetch", (event) => {
-    if (event.request.method !== "GET") return;
+// ==============================
+// ファイル取得
+// ==============================
 
-    if (event.request.mode === "navigate") {
-        event.respondWith(
-            fetch(event.request)
-                .catch(() => caches.match("./index.html"))
-        );
-        return;
-    }
+self.addEventListener("fetch", (event) => {
+    const request = event.request;
+
+    if (request.method !== "GET") return;
+
+    // 外部サイトの通信は対象外
+    if (new URL(request.url).origin !== self.location.origin) return;
 
     event.respondWith(
-        caches.match(event.request)
-            .then((cachedResponse) => {
-                return cachedResponse || fetch(event.request);
+        fetch(request)
+            .then((response) => {
+                if (!response || !response.ok) {
+                    throw new Error("Network response error");
+                }
+
+                const responseClone = response.clone();
+
+                caches.open(CACHE_NAME)
+                    .then((cache) => {
+                        cache.put(request, responseClone);
+                    });
+
+                return response;
+            })
+            .catch(() => {
+                return caches.match(request).then((cachedResponse) => {
+                    if (cachedResponse) {
+                        return cachedResponse;
+                    }
+
+                    // オフライン時にページを開く場合
+                    if (request.mode === "navigate") {
+                        return caches.match("./index.html");
+                    }
+
+                    throw new Error("Cache not found");
+                });
             })
     );
 });
