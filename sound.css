@@ -145,3 +145,11 @@ button:active {
     -webkit-appearance: none;
     appearance: none;
 }
+/* 曲一覧の再生アイコン背景を透明にする */
+.song-icon {
+    background: transparent !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    appearance: none;
+    -webkit-appearance: none;
+}
