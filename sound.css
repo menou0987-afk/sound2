@@ -127,3 +127,8 @@ button:active {
     transform: translate(-50%, -50%) rotate(-45deg);
     pointer-events: none;
 }
+/* 下部プレイヤーの一時停止アイコン */
+#play {
+    font-weight: 900;
+    letter-spacing: -2px;
+}
