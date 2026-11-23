@@ -11,7 +11,7 @@ const currentSongDisplay = document.getElementById("current-song");
 
 const playButton = document.getElementById("play");
 const prevButton = document.getElementById("prev");
-const nextButton = document.getElementElementById("next");
+const nextButton = document.getElementById("next");
 const repeatButton = document.getElementById("repeat");
 
 // IndexedDB設定
