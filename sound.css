@@ -137,3 +137,11 @@ button:active {
     background-color: transparent !important;
     box-shadow: none !important;
 }
+/* 曲一覧の再生マークの背景を消す */
+.song-icon {
+    background: transparent !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    -webkit-appearance: none;
+    appearance: none;
+}
