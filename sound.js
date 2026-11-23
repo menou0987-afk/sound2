@@ -1,5 +1,5 @@
 // ==============================
-// 音楽プレイヤー　
+// 音楽プレイヤー
 // ==============================
 
 // HTML要素の取得
@@ -142,23 +142,16 @@ function renderSongList() {
         const mark = document.createElement("span");
         mark.className = "song-icon";
 
-        if (index !== currentIndex) {
-            mark.textContent = "■";
-        } else if (audio.paused) {
-            mark.textContent = "▶";
-        } else {
-            mark.textContent = "⏸";
-        }
+        // 再生中は▶、それ以外は■
+        mark.textContent =
+            index === currentIndex && !audio.paused
+                ? "▶"
+                : "■";
 
-        // アイコンを押したとき
+        // アイコンを押したらその曲を最初から再生
         mark.addEventListener("click", (event) => {
             event.stopPropagation();
-
-            if (index !== currentIndex) {
-                playSong(index);
-            } else {
-                togglePlay();
-            }
+            playSong(index);
         });
 
         row.appendChild(mark);
@@ -214,6 +207,8 @@ function playSong(index) {
     // 音源をセット
     audio.src = URL.createObjectURL(blob);
 
+    // 最初から再生
+    audio.currentTime = 0;
     audio.play();
 
     // 再生中の曲名
