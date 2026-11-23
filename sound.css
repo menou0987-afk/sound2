@@ -70,8 +70,12 @@ body {
     gap: 35px;
 }
 
+/* ボタン共通設定 */
 button {
-    background: none;
+    appearance: none;
+    -webkit-appearance: none;
+    background: transparent;
+    background-color: transparent;
     border: none;
     outline: none;
     box-shadow: none;
