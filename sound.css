@@ -132,3 +132,8 @@ button:active {
     font-weight: 900;
     letter-spacing: -2px;
 }
+#play {
+    background: transparent !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+}
