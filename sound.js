@@ -26,6 +26,30 @@
 
 
  // ==============================
+ // 下部プレイヤーのアイコン表示
+ // ==============================
+
+ function setPlayIcon(isPlaying) {
+     if (isPlaying) {
+         // 一時停止アイコン
+         playButton.innerHTML = `
+             <svg viewBox="0 0 24 24" aria-hidden="true">
+                 <rect x="5" y="3" width="5" height="18" fill="white"/>
+                 <rect x="14" y="3" width="5" height="18" fill="white"/>
+             </svg>
+         `;
+     } else {
+         // 再生アイコン
+         playButton.innerHTML = `
+             <svg viewBox="0 0 24 24" aria-hidden="true">
+                 <path d="M6 3L20 12L6 21Z" fill="white"/>
+             </svg>
+         `;
+     }
+ }
+
+
+ // ==============================
  // データベース
  // ==============================
 
@@ -146,7 +170,7 @@
          // 再生中は▶、それ以外は■
          mark.textContent =
              index === currentIndex && !audio.paused
-                 ? "▶"
+                 ? "▶︎"
                  : "■";
 
          // アイコンを押したらその曲を最初から再生
@@ -215,7 +239,7 @@
      // 再生中の曲名
      currentSongDisplay.textContent = getDisplayName(song.name);
 
-     playButton.textContent = "⏸︎";
+     setPlayIcon(true);
 
      renderSongList();
  }
@@ -235,10 +259,10 @@
 
      if (audio.paused) {
          audio.play();
-         playButton.textContent = "⏸︎";
+         setPlayIcon(true);
      } else {
          audio.pause();
-         playButton.textContent = "▶";
+         setPlayIcon(false);
      }
 
      renderSongList();
@@ -354,12 +378,12 @@
  // ==============================
 
  audio.addEventListener("play", () => {
-     playButton.textContent = "⏸︎";
+     setPlayIcon(true);
      renderSongList();
  });
 
  audio.addEventListener("pause", () => {
-     playButton.textContent = "▶";
+     setPlayIcon(false);
      renderSongList();
  });
 
@@ -369,6 +393,8 @@
  // ==============================
 
  async function initialize() {
+     setPlayIcon(false);
+
      db = await openDatabase();
 
      songs = await loadSongs();
